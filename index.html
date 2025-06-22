@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>歌词听写游戏</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+      max-width: 700px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background-color: #6c63ff;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    iframe {
+      width: 100%;
+      height: 120px;
+      border: none;
+      margin-top: 10px;
+    }
+    .hidden {
+      display: none;
+    }
+    .prompt {
+      margin: 10px 0;
+    }
+    a.play-link {
+      display: inline-block;
+      margin-top: 10px;
+      color: #6c63ff;
+      text-decoration: underline;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🎧 歌词听写游戏</h2>
+    <p><strong>歌曲名称：</strong> <span id="song-title">（待播放）</span></p>
+    <button id="play-btn">嵌入播放片段</button>
+    <a id="external-link" class="play-link" href="#" target="_blank">▶ 点我播放视频片段（跳转至 YouTube）</a>
+    <div id="youtube-player" class="hidden"></div>
+  </div>
+
+  <div class="card">
+    <label for="answer">✍️ 请输入你听写的歌词：</label>
+    <input type="text" id="answer" placeholder="请输入歌词..." />
+    <button id="submit-btn">提交答案</button>
+  </div>
+
+  <div class="card hidden" id="result-box">
+    <h3>📄 歌词解析</h3>
+    <p><strong>正确歌词：</strong> <span id="correct-line"></span></p>
+    <p><strong>前一句歌词：</strong> <span id="prev-line"></span></p>
+    <p><strong>后一句歌词：</strong> <span id="next-line"></span></p>
+    <p><strong>歌曲信息：</strong> <span id="info"></span></p>
+
+    <div id="hint-section" class="hidden">
+      <h4>💡 第二轮提示</h4>
+      <button class="hint" data-type="reveal-char">公开一个字</button>
+      <button class="hint" data-type="reveal-initials">公开两个声母</button>
+      <button class="hint" data-type="meaning">提供歌词含义</button>
+    </div>
+
+    <div id="hint-output" class="prompt"></div>
+    <button id="next-btn">下一题</button>
+  </div>
+
+  <script>
+    const data = [
+      {
+        title: "光年之外",
+        artist: "邓紫棋",
+        youtubeId: "fAa3VfuB_m0",
+        start: 44,
+        correct: "我穿越时间的海",
+        prev: "你说你有点难追",
+        next: "试着把我看透",
+        info: "《光年之外》是一首充满科幻色彩的爱情歌曲，表达了不惧距离与时空的深情。",
+        hint: {
+          revealChar: "我******间的海",
+          initials: "w c y s j d h",
+          meaning: "表达为了爱不惜穿越一切阻隔的情感"
+        }
+      }
+    ];
+
+    let current = 0;
+    const titleEl = document.getElementById("song-title");
+    const playerEl = document.getElementById("youtube-player");
+    const playBtn = document.getElementById("play-btn");
+    const answerEl = document.getElementById("answer");
+    const submitBtn = document.getElementById("submit-btn");
+    const resultBox = document.getElementById("result-box");
+    const correctEl = document.getElementById("correct-line");
+    const prevEl = document.getElementById("prev-line");
+    const nextEl = document.getElementById("next-line");
+    const infoEl = document.getElementById("info");
+    const nextBtn = document.getElementById("next-btn");
+    const hintSection = document.getElementById("hint-section");
+    const hintOutput = document.getElementById("hint-output");
+    const linkEl = document.getElementById("external-link");
+
+    function loadQuestion() {
+      const song = data[current];
+      titleEl.textContent = song.title + " - " + song.artist;
+      playerEl.innerHTML = "";
+      playerEl.classList.add("hidden");
+      resultBox.classList.add("hidden");
+      hintOutput.textContent = "";
+      hintSection.classList.add("hidden");
+      answerEl.value = "";
+      linkEl.href = `https://www.youtube.com/watch?v=${song.youtubeId}&t=${song.start}s`;
+    }
+
+    playBtn.addEventListener("click", () => {
+      const song = data[current];
+      const embed = `<iframe src="https://www.youtube.com/embed/${song.youtubeId}?start=${song.start}&autoplay=1&controls=1" allow="autoplay"></iframe>`;
+      playerEl.innerHTML = embed;
+      playerEl.classList.remove("hidden");
+    });
+
+    submitBtn.addEventListener("click", () => {
+      const song = data[current];
+      const input = answerEl.value.trim();
+      correctEl.textContent = song.correct;
+      prevEl.textContent = song.prev;
+      nextEl.textContent = song.next;
+      infoEl.textContent = song.info;
+      hintSection.classList.remove("hidden");
+      resultBox.classList.remove("hidden");
+    });
+
+    document.querySelectorAll(".hint").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const type = btn.dataset.type;
+        const hint = data[current].hint[type];
+        hintOutput.textContent = `提示：${hint}`;
+      });
+    });
+
+    nextBtn.addEventListener("click", () => {
+      current = (current + 1) % data.length;
+      loadQuestion();
+    });
+
+    loadQuestion();
+  </script>
+</body>
+</html>
